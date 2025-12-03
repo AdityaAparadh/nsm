@@ -2,6 +2,8 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import morgan from 'morgan';
 import authRoutes from './api/v1/auth/auth.routes.js';
+import usersRoutes from './api/v1/users/users.routes.js';
+import workshopsRoutes from './api/v1/workshops/workshops.routes.js';
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.get('/health', (req: Request, res: Response) => {
 
 // API Routes - v1
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', usersRoutes);
+app.use('/api/v1/workshops', workshopsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
