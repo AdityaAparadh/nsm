@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  PARTICIPANT
+}
+
+enum EvaluationType {
+  LOCAL
+  REMOTE
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  DROPPED
+  COMPLETED
+}
+
+enum WorkshopStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// Models
+model User {
+  id              Int            @id @default(autoincrement())
+  fullName        String         @map("full_name")
+  email           String         @unique
+  password        String
+  roles           Role[]
+  additionalInfo  Json?          @map("additional_info")
+  enrollments     Enrollment[]
+  submissions     Submission[]
+  certificates    Certificate[]
+  instructedWorkshops WorkshopInstructor[]
+
+  @@map("user")
+}
+
+model Workshop {
+  id                          Int             @id @default(autoincrement())
+  name                        String
+  status                      WorkshopStatus  @default(DRAFT)
+  startDate                   DateTime?       @map("start_date")
+  endDate                     DateTime?       @map("end_date")
+  requiredPassedAssignments   Int?            @map("required_passed_assignments") // NULL means ALL compulsory assignments must be passed
+  s3HomeZipKey                String?         @map("s3_home_zip_key")  // S3 key for workshop home directory content (e.g., "workshops/101/home_content.zip")
+  additionalInfo              Json?           @map("additional_info")
+  assignments                 Assignment[]
+  enrollments                 Enrollment[]
+  certificates                Certificate[]
+  instructors                 WorkshopInstructor[]
+
+  @@map("workshop")
+}
+
+model WorkshopInstructor {
+  id           Int       @id @default(autoincrement())
+  workshopId   Int       @map("workshop_id")
+  instructorId Int       @map("instructor_id")
+  workshop     Workshop  @relation(fields: [workshopId], references: [id])
+  instructor   User      @relation(fields: [instructorId], references: [id])
+
+  @@unique([workshopId, instructorId])
+  @@map("workshop_instructor")
+}
+
+model Assignment {
+  id              Int             @id @default(autoincrement())
+  workshopId      Int             @map("workshop_id")
+  name            String
+  description     String?
+  maximumScore    Int             @map("maximum_score")
+  passingScore    Int             @map("passing_score")
+  assignmentOrder Int             @map("assignment_order")
+  isCompulsory    Boolean         @default(true) @map("is_compulsory")
+  evaluationType  EvaluationType  @map("evaluation_type")
+  notebookPath    String?         @map("notebook_path")    // e.g., "notebooks/intro_python.ipynb"
+  graderImage     String?         @map("grader_image")     // Container image for remote grading
+  s3EvalBinaryKey String?         @map("s3_eval_binary_key") // S3 key for evaluation binary (e.g., "assignments/55/grader_v1.bin")
+  referenceData   Json?           @map("reference_data")   // Store test cases, expected outputs, etc.
+  workshop        Workshop        @relation(fields: [workshopId], references: [id])
+  submissions     Submission[]
+
+  @@unique([workshopId, assignmentOrder])
+  @@map("assignment")
+}
+
+model Enrollment {
+  id            Int              @id @default(autoincrement())
+  participantId Int              @map("participant_id")
+  workshopId    Int              @map("workshop_id")
+  status        EnrollmentStatus @default(ACTIVE)
+  joinedAt      DateTime         @default(now()) @map("joined_at")
+  participant   User             @relation(fields: [participantId], references: [id])
+  workshop      Workshop         @relation(fields: [workshopId], references: [id])
+
+  @@unique([participantId, workshopId])
+  @@map("enrollment")
+}
+
+model Certificate {
+  id            Int       @id @default(autoincrement())
+  participantId Int       @map("participant_id")
+  workshopId    Int       @map("workshop_id")
+  uuid          String    @unique
+  date          DateTime
+  participant   User      @relation(fields: [participantId], references: [id])
+  workshop      Workshop  @relation(fields: [workshopId], references: [id])
+
+  @@unique([participantId, workshopId])
+  @@map("certificate")
+}
+
+model Submission {
+  id            Int        @id @default(autoincrement())
+  participantId Int        @map("participant_id")
+  assignmentId  Int        @map("assignment_id")
+  score         Float
+  attemptNumber Int        @default(1) @map("attempt_number")
+  timestamp     DateTime   @default(now())
+  participant   User       @relation(fields: [participantId], references: [id])
+  assignment    Assignment @relation(fields: [assignmentId], references: [id])
+
+  @@unique([participantId, assignmentId, attemptNumber])
+  @@map("submission")
+}
