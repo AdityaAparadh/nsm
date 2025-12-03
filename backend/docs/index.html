@@ -1,0 +1,3136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Docs</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@4/swagger-ui.css" />
+    <style>body{margin:0;padding:0}</style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
+    <script>
+      const spec = {
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Workshop Management System API",
+    "description": "API for managing educational workshops, assignments, enrollments, and certificates.\nSupports JupyterHub integration with S3 storage for workshop content.\n",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@workshopmanagement.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.workshopmanagement.com/api/v1",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and authorization"
+    },
+    {
+      "name": "Users",
+      "description": "User management operations"
+    },
+    {
+      "name": "Workshops",
+      "description": "Workshop management"
+    },
+    {
+      "name": "Assignments",
+      "description": "Assignment management within workshops"
+    },
+    {
+      "name": "Enrollments",
+      "description": "Workshop enrollment operations"
+    },
+    {
+      "name": "Submissions",
+      "description": "Assignment submission management (admin only)"
+    },
+    {
+      "name": "Certificates",
+      "description": "Certificate generation and retrieval"
+    },
+    {
+      "name": "Instructors",
+      "description": "Workshop instructor management"
+    },
+    {
+      "name": "Storage",
+      "description": "S3 file upload/download operations via presigned URLs"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token for authentication"
+      }
+    },
+    "schemas": {
+      "Role": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "INSTRUCTOR",
+          "PARTICIPANT"
+        ]
+      },
+      "EvaluationType": {
+        "type": "string",
+        "enum": [
+          "LOCAL",
+          "REMOTE"
+        ]
+      },
+      "EnrollmentStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "ACTIVE",
+          "DROPPED",
+          "COMPLETED"
+        ]
+      },
+      "WorkshopStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "ACTIVE",
+          "ARCHIVED"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            },
+            "example": [
+              "PARTICIPANT"
+            ]
+          },
+          "additionalInfo": {
+            "type": "object",
+            "nullable": true,
+            "example": {
+              "department": "Computer Science"
+            }
+          }
+        }
+      },
+      "UserCreate": {
+        "type": "object",
+        "required": [
+          "fullName",
+          "email",
+          "password",
+          "roles"
+        ],
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "example": "SecurePass123!"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            },
+            "example": [
+              "PARTICIPANT"
+            ]
+          },
+          "additionalInfo": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Role"
+            }
+          },
+          "additionalInfo": {
+            "type": "object"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "SecurePass123!"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "SignupRequest": {
+        "type": "object",
+        "required": [
+          "fullName",
+          "email",
+          "password"
+        ],
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "example": "SecurePass123!"
+          }
+        }
+      },
+      "Workshop": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Introduction to Python"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkshopStatus"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2025-01-15T09:00:00Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2025-01-20T17:00:00Z"
+          },
+          "requiredPassedAssignments": {
+            "type": "integer",
+            "nullable": true,
+            "description": "NULL means ALL compulsory assignments must be passed",
+            "example": 3
+          },
+          "s3HomeZipKey": {
+            "type": "string",
+            "nullable": true,
+            "example": "workshops/101/home_content.zip"
+          },
+          "additionalInfo": {
+            "type": "object",
+            "nullable": true
+          },
+          "assignmentCount": {
+            "type": "integer",
+            "description": "Total number of assignments (computed)",
+            "example": 5
+          },
+          "instructorCount": {
+            "type": "integer",
+            "description": "Total number of instructors (computed)",
+            "example": 2
+          }
+        }
+      },
+      "WorkshopWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Workshop"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "assignments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              },
+              "instructors": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "WorkshopCreate": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Introduction to Python"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkshopStatus"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requiredPassedAssignments": {
+            "type": "integer",
+            "nullable": true
+          },
+          "s3HomeZipKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "additionalInfo": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "WorkshopUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkshopStatus"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requiredPassedAssignments": {
+            "type": "integer",
+            "nullable": true
+          },
+          "s3HomeZipKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "additionalInfo": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "Assignment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "workshopId": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Python Basics - Variables"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Learn about Python variables and data types"
+          },
+          "maximumScore": {
+            "type": "integer",
+            "example": 100
+          },
+          "passingScore": {
+            "type": "integer",
+            "example": 70
+          },
+          "assignmentOrder": {
+            "type": "integer",
+            "example": 1
+          },
+          "isCompulsory": {
+            "type": "boolean",
+            "example": true
+          },
+          "evaluationType": {
+            "$ref": "#/components/schemas/EvaluationType"
+          },
+          "notebookPath": {
+            "type": "string",
+            "nullable": true,
+            "example": "notebooks/intro_python.ipynb"
+          },
+          "graderImage": {
+            "type": "string",
+            "nullable": true,
+            "example": "ghcr.io/workshop/python-grader:v1"
+          },
+          "s3EvalBinaryKey": {
+            "type": "string",
+            "nullable": true,
+            "example": "assignments/55/grader_v1.bin"
+          },
+          "referenceData": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "AssignmentCreate": {
+        "type": "object",
+        "required": [
+          "name",
+          "maximumScore",
+          "passingScore",
+          "assignmentOrder",
+          "evaluationType"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "maximumScore": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "passingScore": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "assignmentOrder": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "isCompulsory": {
+            "type": "boolean",
+            "default": true
+          },
+          "evaluationType": {
+            "$ref": "#/components/schemas/EvaluationType"
+          },
+          "notebookPath": {
+            "type": "string"
+          },
+          "graderImage": {
+            "type": "string"
+          },
+          "s3EvalBinaryKey": {
+            "type": "string"
+          },
+          "referenceData": {
+            "type": "object"
+          }
+        }
+      },
+      "AssignmentUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "maximumScore": {
+            "type": "integer"
+          },
+          "passingScore": {
+            "type": "integer"
+          },
+          "assignmentOrder": {
+            "type": "integer"
+          },
+          "isCompulsory": {
+            "type": "boolean"
+          },
+          "evaluationType": {
+            "$ref": "#/components/schemas/EvaluationType"
+          },
+          "notebookPath": {
+            "type": "string"
+          },
+          "graderImage": {
+            "type": "string"
+          },
+          "s3EvalBinaryKey": {
+            "type": "string"
+          },
+          "referenceData": {
+            "type": "object"
+          }
+        }
+      },
+      "Enrollment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "workshopId": {
+            "type": "integer",
+            "example": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnrollmentStatus"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-10T14:30:00Z"
+          }
+        }
+      },
+      "EnrollmentWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Enrollment"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "participant": {
+                "$ref": "#/components/schemas/User"
+              },
+              "workshop": {
+                "$ref": "#/components/schemas/Workshop"
+              }
+            }
+          }
+        ]
+      },
+      "EnrollmentCreate": {
+        "type": "object",
+        "required": [
+          "participantId",
+          "workshopId"
+        ],
+        "properties": {
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "workshopId": {
+            "type": "integer",
+            "example": 1
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnrollmentStatus",
+            "default": "PENDING"
+          }
+        }
+      },
+      "EnrollmentUpdate": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/EnrollmentStatus"
+          }
+        }
+      },
+      "PresignedEnrollmentLink": {
+        "type": "object",
+        "properties": {
+          "enrollmentLink": {
+            "type": "string",
+            "example": "https://api.workshopmanagement.com/api/v1/enrollments/enroll/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-15T23:59:59Z"
+          }
+        }
+      },
+      "EnrollWithTokenRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "Submission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "assignmentId": {
+            "type": "integer",
+            "example": 1
+          },
+          "score": {
+            "type": "number",
+            "format": "float",
+            "example": 85.5
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "example": 2
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-12T10:30:00Z"
+          }
+        }
+      },
+      "SubmissionWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Submission"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "participant": {
+                "$ref": "#/components/schemas/User"
+              },
+              "assignment": {
+                "$ref": "#/components/schemas/Assignment"
+              }
+            }
+          }
+        ]
+      },
+      "SubmissionCreate": {
+        "type": "object",
+        "required": [
+          "participantId",
+          "assignmentId",
+          "score"
+        ],
+        "properties": {
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "assignmentId": {
+            "type": "integer",
+            "example": 1
+          },
+          "score": {
+            "type": "number",
+            "format": "float",
+            "minimum": 0,
+            "example": 85.5
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "example": 2
+          }
+        }
+      },
+      "Certificate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "workshopId": {
+            "type": "integer",
+            "example": 1
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-01-20T17:00:00Z"
+          }
+        }
+      },
+      "CertificateWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Certificate"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "participant": {
+                "$ref": "#/components/schemas/User"
+              },
+              "workshop": {
+                "$ref": "#/components/schemas/Workshop"
+              }
+            }
+          }
+        ]
+      },
+      "CertificateGenerate": {
+        "type": "object",
+        "required": [
+          "participantId",
+          "workshopId"
+        ],
+        "properties": {
+          "participantId": {
+            "type": "integer",
+            "example": 5
+          },
+          "workshopId": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "WorkshopInstructorCreate": {
+        "type": "object",
+        "required": [
+          "instructorId"
+        ],
+        "properties": {
+          "instructorId": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "PresignedUploadUrl": {
+        "type": "object",
+        "properties": {
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://workshop-bucket.s3.amazonaws.com/uploads/file.bin?X-Amz-Algorithm=AWS4-HMAC-SHA256&..."
+          },
+          "s3Key": {
+            "type": "string",
+            "example": "workshops/101/home_content.zip"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-03T12:00:00Z"
+          },
+          "fields": {
+            "type": "object",
+            "description": "Additional fields for multipart/form-data upload",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PresignedDownloadUrl": {
+        "type": "object",
+        "properties": {
+          "downloadUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://workshop-bucket.s3.amazonaws.com/workshops/101/home_content.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&..."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-12-03T12:00:00Z"
+          }
+        }
+      },
+      "UploadUrlRequest": {
+        "type": "object",
+        "required": [
+          "fileName",
+          "fileType",
+          "purpose"
+        ],
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "example": "home_content.zip"
+          },
+          "fileType": {
+            "type": "string",
+            "example": "application/zip"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "WORKSHOP_HOME",
+              "ASSIGNMENT_GRADER",
+              "ASSIGNMENT_NOTEBOOK",
+              "OTHER"
+            ],
+            "description": "Purpose of the file upload"
+          },
+          "workshopId": {
+            "type": "integer",
+            "description": "Required for WORKSHOP_HOME purpose",
+            "example": 101
+          },
+          "assignmentId": {
+            "type": "integer",
+            "description": "Required for ASSIGNMENT_GRADER or ASSIGNMENT_NOTEBOOK purpose",
+            "example": 55
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "URL expiration time in seconds",
+            "default": 3600,
+            "example": 3600
+          }
+        }
+      },
+      "DownloadUrlRequest": {
+        "type": "object",
+        "required": [
+          "s3Key"
+        ],
+        "properties": {
+          "s3Key": {
+            "type": "string",
+            "example": "workshops/101/home_content.zip"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "description": "URL expiration time in seconds",
+            "default": 3600,
+            "example": 3600
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Resource not found"
+          },
+          "message": {
+            "type": "string",
+            "example": "The requested workshop does not exist"
+          },
+          "code": {
+            "type": "string",
+            "example": "WORKSHOP_NOT_FOUND"
+          }
+        }
+      },
+      "PaginationParams": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "example": 20
+          }
+        }
+      },
+      "PaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {}
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "example": 1
+              },
+              "limit": {
+                "type": "integer",
+                "example": 20
+              },
+              "total": {
+                "type": "integer",
+                "example": 150
+              },
+              "totalPages": {
+                "type": "integer",
+                "example": 8
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Unauthorized - Invalid or missing JWT token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized",
+              "message": "Invalid or missing authentication token",
+              "code": "UNAUTHORIZED"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden - Insufficient permissions",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Forbidden",
+              "message": "You do not have permission to access this resource",
+              "code": "FORBIDDEN"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Not Found",
+              "message": "The requested resource does not exist",
+              "code": "NOT_FOUND"
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Bad request - Invalid input",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Bad Request",
+              "message": "Invalid input data",
+              "code": "VALIDATION_ERROR"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register a new user",
+        "description": "Create a new user account. By default, users are created with PARTICIPANT role.",
+        "operationId": "signup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login to the system",
+        "description": "Authenticate with email and password to receive a JWT token",
+        "operationId": "login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get current user profile",
+        "description": "Retrieve the profile of the currently authenticated user",
+        "operationId": "getCurrentUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List all users",
+        "description": "Retrieve a paginated list of users (Admin only)",
+        "operationId": "listUsers",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "$ref": "#/components/schemas/Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/User"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create a new user",
+        "description": "Create a new user (Admin only)",
+        "operationId": "createUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user by ID",
+        "description": "Retrieve a specific user (Admin only)",
+        "operationId": "getUserById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update user",
+        "description": "Update user information (Admin only)",
+        "operationId": "updateUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete user",
+        "description": "Delete a user (Admin only)",
+        "operationId": "deleteUser",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/workshops": {
+      "get": {
+        "tags": [
+          "Workshops"
+        ],
+        "summary": "List workshops",
+        "description": "Retrieve workshops based on user role:\n- Admin: All workshops\n- Instructor: Workshops they instruct\n- Participant: Workshops they are enrolled in or completed\n",
+        "operationId": "listWorkshops",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by workshop status",
+            "schema": {
+              "$ref": "#/components/schemas/WorkshopStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of workshops",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Workshop"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Workshops"
+        ],
+        "summary": "Create a new workshop",
+        "description": "Create a new workshop (Admin only)",
+        "operationId": "createWorkshop",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkshopCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workshop created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workshop"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}": {
+      "get": {
+        "tags": [
+          "Workshops"
+        ],
+        "summary": "Get workshop by ID",
+        "description": "Retrieve workshop details with assignments and instructors.\nAccess control:\n- Admin: Any workshop\n- Instructor: Workshops they instruct\n- Participant: Workshops they are enrolled in\n",
+        "operationId": "getWorkshopById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workshop retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkshopWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Workshops"
+        ],
+        "summary": "Update workshop",
+        "description": "Update workshop details (Admin only)",
+        "operationId": "updateWorkshop",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkshopUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workshop updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Workshop"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workshops"
+        ],
+        "summary": "Delete workshop",
+        "description": "Delete a workshop (Admin only)",
+        "operationId": "deleteWorkshop",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Workshop deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}/assignments": {
+      "get": {
+        "tags": [
+          "Assignments"
+        ],
+        "summary": "List assignments for a workshop",
+        "description": "Retrieve all assignments for a specific workshop",
+        "operationId": "listAssignments",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of assignments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Assignment"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Assignments"
+        ],
+        "summary": "Create a new assignment",
+        "description": "Create a new assignment in a workshop (Admin or Instructor of the workshop)",
+        "operationId": "createAssignment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Assignment created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}/assignments/{assignmentId}": {
+      "get": {
+        "tags": [
+          "Assignments"
+        ],
+        "summary": "Get assignment by ID",
+        "description": "Retrieve a specific assignment",
+        "operationId": "getAssignmentById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assignment retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Assignments"
+        ],
+        "summary": "Update assignment",
+        "description": "Update assignment details (Admin or Instructor of the workshop)",
+        "operationId": "updateAssignment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assignment updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Assignments"
+        ],
+        "summary": "Delete assignment",
+        "description": "Delete an assignment (Admin or Instructor of the workshop)",
+        "operationId": "deleteAssignment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Assignment deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}/instructors": {
+      "get": {
+        "tags": [
+          "Instructors"
+        ],
+        "summary": "List instructors for a workshop",
+        "description": "Retrieve all instructors assigned to a workshop",
+        "operationId": "listWorkshopInstructors",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of instructors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Instructors"
+        ],
+        "summary": "Add instructor to workshop",
+        "description": "Assign an instructor to a workshop (Admin only)",
+        "operationId": "addWorkshopInstructor",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkshopInstructorCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instructor added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Instructor already assigned to this workshop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}/instructors/{instructorId}": {
+      "delete": {
+        "tags": [
+          "Instructors"
+        ],
+        "summary": "Remove instructor from workshop",
+        "description": "Remove an instructor from a workshop (Admin only)",
+        "operationId": "removeWorkshopInstructor",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "instructorId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Instructor removed successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/enrollments": {
+      "get": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "List enrollments",
+        "description": "List enrollments based on role:\n- Admin: All enrollments\n- Instructor: Enrollments for workshops they instruct\n- Participant: Their own enrollments\n",
+        "operationId": "listEnrollments",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "workshopId",
+            "in": "query",
+            "description": "Filter by workshop ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "participantId",
+            "in": "query",
+            "description": "Filter by participant ID (Admin only)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by enrollment status",
+            "schema": {
+              "$ref": "#/components/schemas/EnrollmentStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of enrollments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/EnrollmentWithDetails"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Create enrollment",
+        "description": "Enroll a participant in a workshop (Admin or Instructor of the workshop)",
+        "operationId": "createEnrollment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrollment created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enrollment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "description": "Participant already enrolled in this workshop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/enrollments/{enrollmentId}": {
+      "get": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Get enrollment by ID",
+        "description": "Retrieve a specific enrollment",
+        "operationId": "getEnrollmentById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enrollment retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Update enrollment status",
+        "description": "Update enrollment status (Admin or Instructor of the workshop)",
+        "operationId": "updateEnrollment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enrollment updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enrollment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Delete enrollment",
+        "description": "Delete an enrollment (Admin only)",
+        "operationId": "deleteEnrollment",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Enrollment deleted successfully"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/workshops/{workshopId}/enrollment-link": {
+      "post": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Generate presigned enrollment link",
+        "description": "Create a presigned enrollment link for a workshop (Admin only)",
+        "operationId": "generateEnrollmentLink",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workshopId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiresIn": {
+                    "type": "integer",
+                    "description": "Link expiration time in seconds",
+                    "default": 86400,
+                    "example": 86400
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Enrollment link generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedEnrollmentLink"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/enrollments/enroll": {
+      "post": {
+        "tags": [
+          "Enrollments"
+        ],
+        "summary": "Enroll using presigned link",
+        "description": "Enroll the authenticated user in a workshop using a presigned token",
+        "operationId": "enrollWithToken",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollWithTokenRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Enrolled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enrollment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Already enrolled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "List submissions",
+        "description": "List all submissions (Admin only)",
+        "operationId": "listSubmissions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "participantId",
+            "in": "query",
+            "description": "Filter by participant ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "query",
+            "description": "Filter by assignment ID",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "workshopId",
+            "in": "query",
+            "description": "Filter by workshop ID (via assignment)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SubmissionWithDetails"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Create submission",
+        "description": "Record a new assignment submission (Admin only - system operation)",
+        "operationId": "createSubmission",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submission created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Submission"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/submissions/{submissionId}": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Get submission by ID",
+        "description": "Retrieve a specific submission (Admin only)",
+        "operationId": "getSubmissionById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "submissionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Submission retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/participants/{participantId}/submissions": {
+      "get": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Get participant submissions",
+        "description": "Retrieve all submissions for a participant.\nAccess control:\n- Admin: Any participant\n- Participant: Only their own submissions\n- Instructor: Submissions for workshops they instruct\n",
+        "operationId": "getParticipantSubmissions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "workshopId",
+            "in": "query",
+            "description": "Filter by workshop ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of submissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubmissionWithDetails"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/certificates": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "List certificates",
+        "description": "List certificates based on role:\n- Admin: All certificates\n- Instructor: Certificates for workshops they instruct\n- Participant: Their own certificates\n",
+        "operationId": "listCertificates",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "name": "participantId",
+            "in": "query",
+            "description": "Filter by participant ID (Admin only)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "workshopId",
+            "in": "query",
+            "description": "Filter by workshop ID",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of certificates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CertificateWithDetails"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Generate certificate",
+        "description": "Generate a certificate for a participant who completed a workshop (Admin only)",
+        "operationId": "generateCertificate",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CertificateGenerate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Certificate generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Certificate"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/certificates/{certificateId}": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Get certificate by ID",
+        "description": "Retrieve a specific certificate (Admin only)",
+        "operationId": "getCertificateById",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "certificateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Certificate retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateWithDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/storage/upload-url": {
+      "post": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Generate presigned upload URL",
+        "description": "Generate a presigned S3 URL for uploading files (Admin or Instructor).\nThe returned URL can be used to upload files directly to S3.\nAfter upload, the s3Key should be saved to the appropriate model field.\n",
+        "operationId": "generateUploadUrl",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadUrlRequest"
+              },
+              "examples": {
+                "workshopHome": {
+                  "summary": "Workshop home directory upload",
+                  "value": {
+                    "fileName": "home_content.zip",
+                    "fileType": "application/zip",
+                    "purpose": "WORKSHOP_HOME",
+                    "workshopId": 101,
+                    "expiresIn": 3600
+                  }
+                },
+                "assignmentGrader": {
+                  "summary": "Assignment grader binary upload",
+                  "value": {
+                    "fileName": "grader_v1.bin",
+                    "fileType": "application/octet-stream",
+                    "purpose": "ASSIGNMENT_GRADER",
+                    "assignmentId": 55,
+                    "expiresIn": 3600
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned upload URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedUploadUrl"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/storage/download-url": {
+      "post": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Generate presigned download URL",
+        "description": "Generate a presigned S3 URL for downloading files (Admin or Instructor).\nThe returned URL can be used to download files directly from S3.\n",
+        "operationId": "generateDownloadUrl",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadUrlRequest"
+              },
+              "example": {
+                "s3Key": "workshops/101/home_content.zip",
+                "expiresIn": 3600
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned download URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignedDownloadUrl"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "File not found in S3",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/certificates/verify/{uuid}": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Verify certificate by UUID",
+        "description": "Verify a certificate using its unique UUID (Public endpoint)",
+        "operationId": "verifyCertificate",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Certificate is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateWithDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Certificate not found or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/participants/{participantId}/certificates": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Get participant certificates",
+        "description": "Retrieve all certificates for a participant.\nAccess control:\n- Admin: Any participant\n- Participant: Only their own certificates\n",
+        "operationId": "getParticipantCertificates",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "participantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of certificates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CertificateWithDetails"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  }
+};
+      window.ui = SwaggerUIBundle({
+        spec,
+        dom_id: '#swagger-ui',
+        presets: [SwaggerUIBundle.presets.apis],
+        layout: 'BaseLayout'
+      });
+    </script>
+  </body>
+</html>
