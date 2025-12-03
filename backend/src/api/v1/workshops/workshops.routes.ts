@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { workshopsController } from './workshops.controller.js';
+import { enrollmentsController } from '../enrollments/enrollments.controller.js';
 import { authenticate, requireRole } from '../../../middleware/auth.middleware.js';
 import { Role } from '../../../../generated/prisma/index.js';
 
@@ -30,6 +31,15 @@ router.post('/', requireRole(Role.ADMIN), (req, res, next) =>
  * @access  Private (Role-based access)
  */
 router.get('/:workshopId', (req, res, next) => workshopsController.getWorkshopById(req, res, next));
+
+/**
+ * @route   POST /api/v1/workshops/:workshopId/enrollment-link
+ * @desc    Generate presigned enrollment link
+ * @access  Admin only
+ */
+router.post('/:workshopId/enrollment-link', requireRole(Role.ADMIN), (req, res, next) =>
+  enrollmentsController.generateEnrollmentLink(req, res, next)
+);
 
 /**
  * @route   PATCH /api/v1/workshops/:workshopId

@@ -4,6 +4,8 @@ import morgan from 'morgan';
 import authRoutes from './api/v1/auth/auth.routes.js';
 import usersRoutes from './api/v1/users/users.routes.js';
 import workshopsRoutes from './api/v1/workshops/workshops.routes.js';
+import enrollmentsRoutes from './api/v1/enrollments/enrollments.routes.js';
+import submissionsRoutes from './api/v1/submissions/submissions.routes.js';
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/workshops', workshopsRoutes);
+app.use('/api/v1/enrollments', enrollmentsRoutes);
+app.use('/api/v1/submissions', submissionsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

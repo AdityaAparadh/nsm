@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "bun run index.ts",
     "start": "bun run index.ts",
-    "create-admin": "bun run scripts/create-admin.ts"
+    "generate-docs": "bun run scripts/generate-swagger.ts",
+    "create-admin": "bun run scripts/create-admin.ts",
+    "truncate-db": "bun run scripts/truncate-db.ts"
+
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",

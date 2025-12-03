@@ -41,6 +41,7 @@ Server runs at http://localhost:3000
 - `bun run dev` - Start development server
 - `bun run start` - Start production server
 - `bun run create-admin` - Create/update admin user
+- `bun run truncate-db` - **⚠️ Delete all data from database**
 
 ## API Documentation
 
