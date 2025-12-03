@@ -6,6 +6,8 @@ import usersRoutes from './api/v1/users/users.routes.js';
 import workshopsRoutes from './api/v1/workshops/workshops.routes.js';
 import enrollmentsRoutes from './api/v1/enrollments/enrollments.routes.js';
 import submissionsRoutes from './api/v1/submissions/submissions.routes.js';
+import certificatesRoutes from './api/v1/certificates/certificates.routes.js';
+import storageRoutes from './api/v1/storage/storage.routes.js';
 
 const app = express();
 
@@ -26,6 +28,8 @@ app.use('/api/v1/users', usersRoutes);
 app.use('/api/v1/workshops', workshopsRoutes);
 app.use('/api/v1/enrollments', enrollmentsRoutes);
 app.use('/api/v1/submissions', submissionsRoutes);
+app.use('/api/v1/certificates', certificatesRoutes);
+app.use('/api/v1/storage', storageRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

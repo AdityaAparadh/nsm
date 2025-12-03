@@ -212,7 +212,9 @@ export class EnrollmentsController {
       }
 
       const validatedData = generateEnrollmentLinkSchema.parse(req.body);
-      const result = await enrollmentsService.generateEnrollmentLink(workshopId, validatedData);
+      const userId = req.user!.userId;
+      const userRoles = req.user!.roles;
+      const result = await enrollmentsService.generateEnrollmentLink(workshopId, validatedData, userId, userRoles);
       res.status(200).json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -229,6 +231,14 @@ export class EnrollmentsController {
             error: 'Not Found',
             message: error.message,
             code: 'WORKSHOP_NOT_FOUND',
+          });
+        }
+
+        if (error.message === 'Access denied') {
+          return res.status(403).json({
+            error: 'Forbidden',
+            message: 'You do not have access to generate enrollment links for this workshop',
+            code: 'ACCESS_DENIED',
           });
         }
 

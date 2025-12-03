@@ -99,7 +99,9 @@ export class WorkshopsController {
       }
 
       const validatedData = updateWorkshopSchema.parse(req.body);
-      const workshop = await workshopsService.updateWorkshop(workshopId, validatedData);
+      const userId = req.user!.userId;
+      const userRoles = req.user!.roles;
+      const workshop = await workshopsService.updateWorkshop(workshopId, validatedData, userId, userRoles);
       res.status(200).json(workshop);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -116,6 +118,14 @@ export class WorkshopsController {
             error: 'Not Found',
             message: error.message,
             code: 'WORKSHOP_NOT_FOUND',
+          });
+        }
+
+        if (error.message === 'Access denied') {
+          return res.status(403).json({
+            error: 'Forbidden',
+            message: 'You do not have access to modify this workshop',
+            code: 'ACCESS_DENIED',
           });
         }
 

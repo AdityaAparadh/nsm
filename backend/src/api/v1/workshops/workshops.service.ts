@@ -217,7 +217,10 @@ export class WorkshopsService {
     return workshop;
   }
 
-  async updateWorkshop(workshopId: number, input: UpdateWorkshopInput) {
+  async updateWorkshop(workshopId: number, input: UpdateWorkshopInput, userId: number, userRoles: Role[]) {
+    const isAdmin = userRoles.includes(Role.ADMIN);
+    const isInstructor = userRoles.includes(Role.INSTRUCTOR);
+
     // Check if workshop exists
     const existingWorkshop = await prisma.workshop.findUnique({
       where: { id: workshopId },
@@ -225,6 +228,20 @@ export class WorkshopsService {
 
     if (!existingWorkshop) {
       throw new Error('Workshop not found');
+    }
+
+    // Check if instructor has permission
+    if (!isAdmin && isInstructor) {
+      const isInstructorOfWorkshop = await prisma.workshopInstructor.findFirst({
+        where: {
+          workshopId,
+          instructorId: userId,
+        },
+      });
+
+      if (!isInstructorOfWorkshop) {
+        throw new Error('Access denied');
+      }
     }
 
     const workshop = await prisma.workshop.update({

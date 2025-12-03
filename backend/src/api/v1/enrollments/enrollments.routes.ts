@@ -20,7 +20,7 @@ router.get('/', (req, res, next) => enrollmentsController.listEnrollments(req, r
  * @desc    Create enrollment
  * @access  Admin or Instructor (of the workshop)
  */
-router.post('/', requireRole(Role.ADMIN, Role.INSTRUCTOR), (req, res, next) =>
+router.post('/', requireRole([Role.ADMIN, Role.INSTRUCTOR]), (req, res, next) =>
   enrollmentsController.createEnrollment(req, res, next)
 );
 
@@ -43,7 +43,7 @@ router.get('/:enrollmentId', (req, res, next) => enrollmentsController.getEnroll
  * @desc    Update enrollment status
  * @access  Admin or Instructor (of the workshop)
  */
-router.patch('/:enrollmentId', requireRole(Role.ADMIN, Role.INSTRUCTOR), (req, res, next) =>
+router.patch('/:enrollmentId', requireRole([Role.ADMIN, Role.INSTRUCTOR]), (req, res, next) =>
   enrollmentsController.updateEnrollment(req, res, next)
 );
 

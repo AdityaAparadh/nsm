@@ -284,7 +284,10 @@ export class EnrollmentsService {
     return { message: 'Enrollment deleted successfully' };
   }
 
-  async generateEnrollmentLink(workshopId: number, input: GenerateEnrollmentLinkInput) {
+  async generateEnrollmentLink(workshopId: number, input: GenerateEnrollmentLinkInput, userId: number, userRoles: Role[]) {
+    const isAdmin = userRoles.includes(Role.ADMIN);
+    const isInstructor = userRoles.includes(Role.INSTRUCTOR);
+
     // Check if workshop exists
     const workshop = await prisma.workshop.findUnique({
       where: { id: workshopId },
@@ -292,6 +295,20 @@ export class EnrollmentsService {
 
     if (!workshop) {
       throw new Error('Workshop not found');
+    }
+
+    // Check if instructor has permission
+    if (!isAdmin && isInstructor) {
+      const isInstructorOfWorkshop = await prisma.workshopInstructor.findFirst({
+        where: {
+          workshopId,
+          instructorId: userId,
+        },
+      });
+
+      if (!isInstructorOfWorkshop) {
+        throw new Error('Access denied');
+      }
     }
 
     // Generate token

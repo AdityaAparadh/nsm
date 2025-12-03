@@ -42,7 +42,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
-export const requireRole = (...allowedRoles: Role[]) => {
+export const requireRole = (allowedRoles: Role | Role[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
@@ -52,7 +52,8 @@ export const requireRole = (...allowedRoles: Role[]) => {
       });
     }
 
-    const hasRole = req.user.roles.some(role => allowedRoles.includes(role));
+    const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    const hasRole = req.user.roles.some(role => rolesArray.includes(role));
 
     if (!hasRole) {
       return res.status(403).json({

@@ -3,6 +3,8 @@ import { workshopsController } from './workshops.controller.js';
 import { enrollmentsController } from '../enrollments/enrollments.controller.js';
 import { authenticate, requireRole } from '../../../middleware/auth.middleware.js';
 import { Role } from '../../../../generated/prisma/index.js';
+import instructorsRoutes from '../instructors/instructors.routes.js';
+import assignmentsRoutes from '../assignments/assignments.routes.js';
 
 const router = Router();
 
@@ -35,18 +37,18 @@ router.get('/:workshopId', (req, res, next) => workshopsController.getWorkshopBy
 /**
  * @route   POST /api/v1/workshops/:workshopId/enrollment-link
  * @desc    Generate presigned enrollment link
- * @access  Admin only
+ * @access  Admin or Instructor (of the workshop)
  */
-router.post('/:workshopId/enrollment-link', requireRole(Role.ADMIN), (req, res, next) =>
+router.post('/:workshopId/enrollment-link', requireRole([Role.ADMIN, Role.INSTRUCTOR]), (req, res, next) =>
   enrollmentsController.generateEnrollmentLink(req, res, next)
 );
 
 /**
  * @route   PATCH /api/v1/workshops/:workshopId
  * @desc    Update workshop
- * @access  Admin only
+ * @access  Admin or Instructor (of the workshop)
  */
-router.patch('/:workshopId', requireRole(Role.ADMIN), (req, res, next) =>
+router.patch('/:workshopId', requireRole([Role.ADMIN, Role.INSTRUCTOR]), (req, res, next) =>
   workshopsController.updateWorkshop(req, res, next)
 );
 
@@ -58,5 +60,19 @@ router.patch('/:workshopId', requireRole(Role.ADMIN), (req, res, next) =>
 router.delete('/:workshopId', requireRole(Role.ADMIN), (req, res, next) =>
   workshopsController.deleteWorkshop(req, res, next)
 );
+
+/**
+ * @route   /api/v1/workshops/:workshopId/instructors
+ * @desc    Instructor management routes (nested)
+ * @access  Private
+ */
+router.use('/:workshopId/instructors', instructorsRoutes);
+
+/**
+ * @route   /api/v1/workshops/:workshopId/assignments
+ * @desc    Assignment management routes (nested)
+ * @access  Private
+ */
+router.use('/:workshopId/assignments', assignmentsRoutes);
 
 export default router;
