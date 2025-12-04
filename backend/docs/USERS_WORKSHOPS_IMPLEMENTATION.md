@@ -183,13 +183,9 @@ Includes assignments and instructors.
       "description": "Learn Python fundamentals",
       "maximumScore": 100,
       "passingScore": 70,
-      "assignmentOrder": 1,
       "isCompulsory": true,
       "evaluationType": "LOCAL",
-      "notebookPath": "notebooks/basics.ipynb",
-      "graderImage": null,
-      "s3EvalBinaryKey": null,
-      "referenceData": null
+      "s3EvalBinaryKey": null
     }
   ],
   "instructors": [

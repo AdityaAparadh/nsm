@@ -90,17 +90,12 @@ model Assignment {
   description     String?
   maximumScore    Int             @map("maximum_score")
   passingScore    Int             @map("passing_score")
-  assignmentOrder Int             @map("assignment_order")
   isCompulsory    Boolean         @default(true) @map("is_compulsory")
   evaluationType  EvaluationType  @map("evaluation_type")
-  notebookPath    String?         @map("notebook_path")    // e.g., "notebooks/intro_python.ipynb"
-  graderImage     String?         @map("grader_image")     // Container image for remote grading
   s3EvalBinaryKey String?         @map("s3_eval_binary_key") // S3 key for evaluation binary (e.g., "assignments/55/grader_v1.bin")
-  referenceData   Json?           @map("reference_data")   // Store test cases, expected outputs, etc.
   workshop        Workshop        @relation(fields: [workshopId], references: [id])
   submissions     Submission[]
 
-  @@unique([workshopId, assignmentOrder])
   @@map("assignment")
 }
 

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# ===================================================================
+#  Workshop Setup Client
+#  Connects to the root server socket to request a workshop setup.
+# ===================================================================
+
+readonly SOCKET_PATH="/var/run/workshop_setup.sock"
+
+# Check if the server socket exists. If not, the server isn't running.
+if [[ ! -S "$SOCKET_PATH" ]]; then
+    echo "Error: The setup service is not running." >&2
+    echo "Please contact an administrator." >&2
+    exit 1
+fi
+
+# Send the current user's name to the server socket.
+# The server's response will be printed directly to our terminal.
+echo "Requesting workshop setup from the server..."
+echo "$USER" | nc -U "$SOCKET_PATH"
+
+echo
+echo "Request finished."

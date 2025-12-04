@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# ===================================================================
+#  Judging Client
+#  Sends a file for evaluation with assignment metadata to the judging server.
+# ===================================================================
+
+readonly SOCKET_PATH="/var/run/judging.sock"
+
+# Parse command-line arguments
+ASSIGNMENT_ID=""
+FILEPATH=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -a|--assignment)
+            ASSIGNMENT_ID="$2"
+            shift 2
+            ;;
+        *)
+            FILEPATH="$1"
+            shift
+            ;;
+    esac
+done
+
+# Validate required parameters
+if [ -z "$ASSIGNMENT_ID" ] || [ -z "$FILEPATH" ]; then
+    echo "Error: Missing required parameters" >&2
+    echo "Usage: $0 -a <assignment_id> <path/to/your/file>" >&2
+    exit 1
+fi
+
+# Validate assignment ID is numeric
+if ! [[ "$ASSIGNMENT_ID" =~ ^[0-9]+$ ]]; then
+    echo "Error: Assignment ID must be numeric" >&2
+    exit 1
+fi
+
+# Check if the file exists locally
+if [ ! -f "$FILEPATH" ]; then
+    echo "Error: File '$FILEPATH' does not exist" >&2
+    exit 1
+fi
+
+# Check if the server socket exists
+if [[ ! -S "$SOCKET_PATH" ]]; then
+    echo "Error: The judging service is not available." >&2
+    echo "Please contact an administrator." >&2
+    exit 1
+fi
+
+# Validate filepath is from user's home directory
+if ! [[ "$FILEPATH" =~ ^/home/[^/]+/.+ ]]; then
+    echo "Error: File must be in a home directory (/home/username/...)" >&2
+    exit 1
+fi
+
+# Resolve to an absolute path to avoid ambiguity
+ABSOLUTE_PATH=$(realpath "$FILEPATH")
+
+# Send assignment ID and absolute path to the server socket.
+# The server's full response will be printed directly to our terminal.
+echo "Submitting '$ABSOLUTE_PATH' for assignment $ASSIGNMENT_ID..."
+echo "$ASSIGNMENT_ID|$ABSOLUTE_PATH" | nc -U "$SOCKET_PATH"
+
+echo

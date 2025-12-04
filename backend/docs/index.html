@@ -437,10 +437,6 @@
             "type": "integer",
             "example": 70
           },
-          "assignmentOrder": {
-            "type": "integer",
-            "example": 1
-          },
           "isCompulsory": {
             "type": "boolean",
             "example": true
@@ -448,24 +444,10 @@
           "evaluationType": {
             "$ref": "#/components/schemas/EvaluationType"
           },
-          "notebookPath": {
-            "type": "string",
-            "nullable": true,
-            "example": "notebooks/intro_python.ipynb"
-          },
-          "graderImage": {
-            "type": "string",
-            "nullable": true,
-            "example": "ghcr.io/workshop/python-grader:v1"
-          },
           "s3EvalBinaryKey": {
             "type": "string",
             "nullable": true,
             "example": "assignments/55/grader_v1.bin"
-          },
-          "referenceData": {
-            "type": "object",
-            "nullable": true
           }
         }
       },
@@ -475,7 +457,6 @@
           "name",
           "maximumScore",
           "passingScore",
-          "assignmentOrder",
           "evaluationType"
         ],
         "properties": {
@@ -493,10 +474,6 @@
             "type": "integer",
             "minimum": 0
           },
-          "assignmentOrder": {
-            "type": "integer",
-            "minimum": 1
-          },
           "isCompulsory": {
             "type": "boolean",
             "default": true
@@ -504,17 +481,8 @@
           "evaluationType": {
             "$ref": "#/components/schemas/EvaluationType"
           },
-          "notebookPath": {
-            "type": "string"
-          },
-          "graderImage": {
-            "type": "string"
-          },
           "s3EvalBinaryKey": {
             "type": "string"
-          },
-          "referenceData": {
-            "type": "object"
           }
         }
       },
@@ -533,26 +501,14 @@
           "passingScore": {
             "type": "integer"
           },
-          "assignmentOrder": {
-            "type": "integer"
-          },
           "isCompulsory": {
             "type": "boolean"
           },
           "evaluationType": {
             "$ref": "#/components/schemas/EvaluationType"
           },
-          "notebookPath": {
-            "type": "string"
-          },
-          "graderImage": {
-            "type": "string"
-          },
           "s3EvalBinaryKey": {
             "type": "string"
-          },
-          "referenceData": {
-            "type": "object"
           }
         }
       },

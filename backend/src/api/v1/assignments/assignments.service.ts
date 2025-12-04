@@ -61,7 +61,6 @@ export class AssignmentsService {
 
     const assignments = await prisma.assignment.findMany({
       where: { workshopId },
-      orderBy: { assignmentOrder: 'asc' },
     });
 
     return assignments;
@@ -163,13 +162,9 @@ export class AssignmentsService {
         description: input.description ?? null,
         maximumScore: input.maximumScore,
         passingScore: input.passingScore,
-        assignmentOrder: input.assignmentOrder,
         isCompulsory: input.isCompulsory ?? true,
         evaluationType: input.evaluationType,
-        notebookPath: input.notebookPath ?? null,
-        graderImage: input.graderImage ?? null,
         s3EvalBinaryKey: input.s3EvalBinaryKey ?? null,
-        referenceData: (input.referenceData as any) ?? undefined,
       },
     });
 
@@ -219,13 +214,9 @@ export class AssignmentsService {
         ...(input.description !== undefined && { description: input.description }),
         ...(input.maximumScore !== undefined && { maximumScore: input.maximumScore }),
         ...(input.passingScore !== undefined && { passingScore: input.passingScore }),
-        ...(input.assignmentOrder !== undefined && { assignmentOrder: input.assignmentOrder }),
         ...(input.isCompulsory !== undefined && { isCompulsory: input.isCompulsory }),
         ...(input.evaluationType && { evaluationType: input.evaluationType }),
-        ...(input.notebookPath !== undefined && { notebookPath: input.notebookPath }),
-        ...(input.graderImage !== undefined && { graderImage: input.graderImage }),
         ...(input.s3EvalBinaryKey !== undefined && { s3EvalBinaryKey: input.s3EvalBinaryKey }),
-        ...(input.referenceData !== undefined && { referenceData: input.referenceData as any }),
       },
     });
 

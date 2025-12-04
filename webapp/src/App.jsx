@@ -1,35 +1,89 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import WorkshopDetail from './pages/admin/WorkshopDetail';
+import InstructorDashboard from './pages/instructor/InstructorDashboard';
+import ParticipantDashboard from './pages/participant/ParticipantDashboard';
 
-function App() {
-  const [count, setCount] = useState(0)
+function RootRedirect() {
+  const { user, loading } = useAuth();
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <span className="loading loading-spinner loading-lg"></span>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirect based on user role
+  if (user.roles.includes('ADMIN')) {
+    return <Navigate to="/admin" replace />;
+  } else if (user.roles.includes('INSTRUCTOR')) {
+    return <Navigate to="/instructor" replace />;
+  } else {
+    return <Navigate to="/participant" replace />;
+  }
 }
 
-export default App
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/workshop/:workshopId"
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <WorkshopDetail />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/instructor/*"
+            element={
+              <ProtectedRoute requiredRole="INSTRUCTOR">
+                <InstructorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/participant/*"
+            element={
+              <ProtectedRoute requiredRole="PARTICIPANT">
+                <ParticipantDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;

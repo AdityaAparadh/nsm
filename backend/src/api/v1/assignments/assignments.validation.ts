@@ -6,13 +6,9 @@ export const createAssignmentSchema = z.object({
   description: z.string().optional(),
   maximumScore: z.number().int().min(0),
   passingScore: z.number().int().min(0),
-  assignmentOrder: z.number().int().min(1),
   isCompulsory: z.boolean().default(true),
   evaluationType: z.nativeEnum(EvaluationType),
-  notebookPath: z.string().optional(),
-  graderImage: z.string().optional(),
   s3EvalBinaryKey: z.string().optional(),
-  referenceData: z.any().optional(),
 });
 
 export const updateAssignmentSchema = z.object({
@@ -20,13 +16,9 @@ export const updateAssignmentSchema = z.object({
   description: z.string().optional(),
   maximumScore: z.number().int().min(0).optional(),
   passingScore: z.number().int().min(0).optional(),
-  assignmentOrder: z.number().int().min(1).optional(),
   isCompulsory: z.boolean().optional(),
   evaluationType: z.nativeEnum(EvaluationType).optional(),
-  notebookPath: z.string().optional(),
-  graderImage: z.string().optional(),
   s3EvalBinaryKey: z.string().optional(),
-  referenceData: z.any().optional(),
 });
 
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;

@@ -105,7 +105,6 @@ export class WorkshopsService {
       where: { id: workshopId },
       include: {
         assignments: {
-          orderBy: { assignmentOrder: 'asc' },
           select: {
             id: true,
             workshopId: true,
@@ -113,13 +112,9 @@ export class WorkshopsService {
             description: true,
             maximumScore: true,
             passingScore: true,
-            assignmentOrder: true,
             isCompulsory: true,
             evaluationType: true,
-            notebookPath: true,
-            graderImage: true,
             s3EvalBinaryKey: true,
-            referenceData: true,
           },
         },
         instructors: {

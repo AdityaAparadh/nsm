@@ -1,0 +1,15 @@
+[Unit]
+Description=Judging Socket Server for Workshops
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/local/sbin/judge_server.sh
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
