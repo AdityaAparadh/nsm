@@ -60,8 +60,28 @@ fi
 ABSOLUTE_PATH=$(realpath "$FILEPATH")
 
 # Send assignment ID and absolute path to the server socket.
-# The server's full response will be printed directly to our terminal.
-echo "Submitting '$ABSOLUTE_PATH' for assignment $ASSIGNMENT_ID..."
-echo "$ASSIGNMENT_ID|$ABSOLUTE_PATH" | nc -U "$SOCKET_PATH"
+echo "Evaluating submission..."
+RESPONSE=$(echo "$ASSIGNMENT_ID|$ABSOLUTE_PATH" | nc -U "$SOCKET_PATH")
 
-echo
+# Extract and display only the final result
+SCORE_LINE=$(echo "$RESPONSE" | grep -E '^Score:' | tail -1)
+ERROR_LINE=$(echo "$RESPONSE" | grep -E '^Error:' | tail -1)
+
+if [ -n "$ERROR_LINE" ]; then
+    echo "$ERROR_LINE"
+    exit 1
+elif [ -n "$SCORE_LINE" ]; then
+    SCORE=$(echo "$SCORE_LINE" | sed 's/Score: //')
+    echo ""
+    echo "═══════════════════════════════"
+    if [ "$SCORE" = "100" ]; then
+        echo "  Result: PASS "
+    else
+        echo "  Result: FAIL "
+    fi
+    echo "  Score:  $SCORE"
+    echo "═══════════════════════════════"
+else
+    echo "Error: Could not determine result"
+    exit 1
+fi

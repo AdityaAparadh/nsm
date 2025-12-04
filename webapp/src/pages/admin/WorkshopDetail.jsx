@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { workshopsAPI } from '../../services/api';
+import { workshopsAPI, loadAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import FileUpload from '../../components/FileUpload';
 import AssignmentsManager from '../../components/admin/AssignmentsManager';
@@ -20,6 +20,7 @@ const WorkshopDetail = () => {
   // Initialize activeTab from URL query param or default to 'assignments'
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'assignments');
   const [showEditModal, setShowEditModal] = useState(false);
+  const [loadingWorkshop, setLoadingWorkshop] = useState(false);
 
   useEffect(() => {
     fetchWorkshop();
@@ -57,6 +58,26 @@ const WorkshopDetail = () => {
       fetchWorkshop();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update workshop');
+    }
+  };
+
+  const handleLoadWorkshop = async () => {
+    if (!confirm('This will:\n• Update the active workshop ID in the system\n• Download the workshop home zip\n• Create local system users for all participants and instructors\n\nContinue?')) {
+      return;
+    }
+    
+    setLoadingWorkshop(true);
+    try {
+      const response = await loadAPI.loadWorkshop(workshopId);
+      const result = response.data;
+      let message = `Workshop "${result.workshopName}" loaded successfully!\n\n`;
+      message += `• Users processed: ${result.usersProcessed}\n`;
+      message += `• Home zip downloaded: ${result.homeZipDownloaded ? 'Yes' : 'No (not configured)'}`;
+      alert(message);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to load workshop');
+    } finally {
+      setLoadingWorkshop(false);
     }
   };
 
@@ -156,7 +177,27 @@ const WorkshopDetail = () => {
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <button
+              className="btn btn-primary"
+              onClick={handleLoadWorkshop}
+              disabled={loadingWorkshop}
+              title="Load workshop: update env, download home zip, create users"
+            >
+              {loadingWorkshop ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Loading Workshop...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Load Workshop
+                </>
+              )}
+            </button>
             <div className="stats shadow bg-base-100">
               <div className="stat py-2 px-4">
                 <div className="stat-title text-xs uppercase font-bold tracking-wider">Assignments</div>

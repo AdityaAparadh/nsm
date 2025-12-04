@@ -8,6 +8,7 @@ import enrollmentsRoutes from './api/v1/enrollments/enrollments.routes.js';
 import submissionsRoutes from './api/v1/submissions/submissions.routes.js';
 import certificatesRoutes from './api/v1/certificates/certificates.routes.js';
 import storageRoutes from './api/v1/storage/storage.routes.js';
+import loadRoutes from './api/v1/load/load.routes.js';
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use('/api/v1/enrollments', enrollmentsRoutes);
 app.use('/api/v1/submissions', submissionsRoutes);
 app.use('/api/v1/certificates', certificatesRoutes);
 app.use('/api/v1/storage', storageRoutes);
+app.use('/api/v1/load', loadRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

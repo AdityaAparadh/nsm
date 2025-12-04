@@ -111,5 +111,10 @@ export const storageAPI = {
   generateDownloadUrl: (data) => api.post('/storage/download-url', data),
 };
 
+// Load endpoints (workshop loading - users, env, home zip)
+export const loadAPI = {
+  loadWorkshop: (workshopId) => api.post(`/load/${workshopId}`),
+};
+
 export default api;
 

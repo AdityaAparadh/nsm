@@ -159,6 +159,13 @@ download_eval_binary() {
         return 1
     fi
     
+    # Convert any Windows line endings (CRLF) to Unix (LF)
+    # This fixes "cannot execute binary file" errors for scripts uploaded from Windows
+    if file "$output_path" | grep -q "text"; then
+        echo "Detected text file, converting line endings..." >&2
+        sed -i 's/\r$//' "$output_path"
+    fi
+    
     # Make it executable
     chmod +x "$output_path"
     echo "$output_path"
