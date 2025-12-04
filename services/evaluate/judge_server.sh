@@ -11,6 +11,7 @@ export readonly SOCKET_PATH="/var/run/judging.sock"
 export readonly ALLOWED_GROUP="jupyterhub-users"
 export readonly ENV_FILE="/root/.env"
 export readonly EVAL_CACHE_DIR="/tmp/nsm-eval-cache"
+export readonly REMOTE_PRODUCER="/opt/nsm/remote/producer.sh"
 
 # --- Cleanup Function ---
 cleanup() {
@@ -234,6 +235,7 @@ handle_request() {
     # Parse assignment details
     ASSIGNMENT_NAME=$(echo "$ASSIGNMENT_RESPONSE" | jq -r '.name')
     S3_EVAL_BINARY_KEY=$(echo "$ASSIGNMENT_RESPONSE" | jq -r '.s3EvalBinaryKey')
+    EVALUATION_TYPE=$(echo "$ASSIGNMENT_RESPONSE" | jq -r '.evaluationType // "LOCAL"')
     
     if [ -z "$ASSIGNMENT_NAME" ] || [ "$ASSIGNMENT_NAME" == "null" ]; then
         echo "Error: Assignment ID $ASSIGNMENT_ID not found in workshop $WORKSHOP_ID"
@@ -242,6 +244,7 @@ handle_request() {
     fi
     
     echo "Processing assignment: $ASSIGNMENT_NAME (ID: $ASSIGNMENT_ID)"
+    echo "Evaluation type: $EVALUATION_TYPE"
     
     if [ -z "$S3_EVAL_BINARY_KEY" ] || [ "$S3_EVAL_BINARY_KEY" == "null" ]; then
         echo "Error: S3 evaluation binary key not configured for assignment $ASSIGNMENT_ID"
@@ -249,6 +252,45 @@ handle_request() {
     fi
     
     echo "S3 eval binary key: $S3_EVAL_BINARY_KEY"
+    
+    # ============================================================
+    # REMOTE Evaluation - Queue job for serial processing
+    # ============================================================
+    if [ "$EVALUATION_TYPE" == "REMOTE" ]; then
+        echo "Routing to REMOTE evaluation queue..."
+        
+        if [ ! -x "$REMOTE_PRODUCER" ]; then
+            echo "Error: Remote producer not found or not executable at $REMOTE_PRODUCER"
+            return
+        fi
+        
+        # Get current attempt count before queuing
+        CURRENT_ATTEMPTS=$(get_latest_attempt_number "$PARTICIPANT_ID" "$ASSIGNMENT_ID")
+        
+        # Call producer to queue the job
+        QUEUE_RESULT=$("$REMOTE_PRODUCER" \
+            "$WORKSHOP_ID" \
+            "$ASSIGNMENT_ID" \
+            "$PARTICIPANT_ID" \
+            "$USER_EMAIL" \
+            "$FILEPATH" \
+            "$S3_EVAL_BINARY_KEY" 2>&1)
+        QUEUE_EXIT=$?
+        
+        if [ $QUEUE_EXIT -eq 0 ]; then
+            # Return structured response for client to poll
+            echo "Queued"
+            echo "POLL_INFO:${PARTICIPANT_ID}:${ASSIGNMENT_ID}:${CURRENT_ATTEMPTS}"
+        else
+            echo "Error: Failed to queue evaluation job"
+            echo "$QUEUE_RESULT"
+        fi
+        return
+    fi
+    
+    # ============================================================
+    # LOCAL Evaluation - Process immediately
+    # ============================================================
     
     # Download evaluation binary using presigned URL from API
     EVAL_BINARY=$(download_eval_binary "$ASSIGNMENT_ID" "$S3_EVAL_BINARY_KEY")

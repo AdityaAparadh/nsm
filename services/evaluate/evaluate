@@ -6,6 +6,16 @@
 # ===================================================================
 
 readonly SOCKET_PATH="/var/run/judging.sock"
+readonly ENV_FILE="/etc/nsm/client.env"
+readonly POLL_INTERVAL=2
+readonly MAX_POLL_TIME=300  # 5 minutes max wait
+
+# Load environment for API access
+if [ -f "$ENV_FILE" ]; then
+    set -a
+    source "$ENV_FILE" 2>/dev/null
+    set +a
+fi
 
 # Parse command-line arguments
 ASSIGNMENT_ID=""
@@ -66,10 +76,76 @@ RESPONSE=$(echo "$ASSIGNMENT_ID|$ABSOLUTE_PATH" | nc -U "$SOCKET_PATH")
 # Extract and display only the final result
 SCORE_LINE=$(echo "$RESPONSE" | grep -E '^Score:' | tail -1)
 ERROR_LINE=$(echo "$RESPONSE" | grep -E '^Error:' | tail -1)
+QUEUED_LINE=$(echo "$RESPONSE" | grep -E '^Queued' | tail -1)
+POLL_INFO=$(echo "$RESPONSE" | grep -E '^POLL_INFO:' | tail -1)
 
 if [ -n "$ERROR_LINE" ]; then
     echo "$ERROR_LINE"
     exit 1
+elif [ -n "$QUEUED_LINE" ]; then
+    # Parse poll info: POLL_INFO:participantId:assignmentId:currentAttempts
+    if [ -n "$POLL_INFO" ]; then
+        PARTICIPANT_ID=$(echo "$POLL_INFO" | cut -d: -f2)
+        POLL_ASSIGNMENT_ID=$(echo "$POLL_INFO" | cut -d: -f3)
+        CURRENT_ATTEMPTS=$(echo "$POLL_INFO" | cut -d: -f4)
+        
+        echo "Queued for remote evaluation. Waiting for results..."
+        
+        # Poll for results
+        START_TIME=$(date +%s)
+        while true; do
+            sleep $POLL_INTERVAL
+            
+            # Check elapsed time
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
+            if [ $ELAPSED -ge $MAX_POLL_TIME ]; then
+                echo ""
+                echo "═══════════════════════════════"
+                echo "  Status: TIMEOUT"
+                echo "  Evaluation is taking longer"
+                echo "  than expected. Check back later."
+                echo "═══════════════════════════════"
+                exit 1
+            fi
+            
+            # Query submissions API
+            SUBMISSIONS=$(curl -s -X GET \
+                -H "Authorization: Bearer $API_TOKEN" \
+                "${BACKEND_URI}/api/v1/submissions?participantId=${PARTICIPANT_ID}&assignmentId=${POLL_ASSIGNMENT_ID}&limit=10" 2>/dev/null)
+            
+            # Get latest attempt number
+            LATEST_ATTEMPT=$(echo "$SUBMISSIONS" | jq -r '[.data[].attemptNumber] | max // 0' 2>/dev/null)
+            
+            if [ -n "$LATEST_ATTEMPT" ] && [ "$LATEST_ATTEMPT" != "null" ] && [ "$LATEST_ATTEMPT" -gt "$CURRENT_ATTEMPTS" ]; then
+                # New submission found - get the score
+                SCORE=$(echo "$SUBMISSIONS" | jq -r --argjson attempt "$LATEST_ATTEMPT" '.data[] | select(.attemptNumber == $attempt) | .score' 2>/dev/null)
+                
+                if [ -n "$SCORE" ] && [ "$SCORE" != "null" ]; then
+                    echo ""
+                    echo "═══════════════════════════════"
+                    if [ "$SCORE" = "100" ]; then
+                        echo "  Result: PASS "
+                    else
+                        echo "  Result: FAIL "
+                    fi
+                    echo "  Score:  $SCORE"
+                    echo "═══════════════════════════════"
+                    exit 0
+                fi
+            fi
+            
+            # Show waiting indicator
+            printf "."
+        done
+    else
+        echo ""
+        echo "═══════════════════════════════"
+        echo "  Status: QUEUED"
+        echo "  Your submission is queued for"
+        echo "  remote evaluation."
+        echo "═══════════════════════════════"
+    fi
 elif [ -n "$SCORE_LINE" ]; then
     SCORE=$(echo "$SCORE_LINE" | sed 's/Score: //')
     echo ""

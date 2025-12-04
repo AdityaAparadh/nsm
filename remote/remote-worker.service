@@ -1,0 +1,19 @@
+[Unit]
+Description=NSM Remote Evaluation Worker
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nsm/remote
+ExecStart=/usr/bin/python3 /opt/nsm/remote/worker.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment file
+EnvironmentFile=/opt/nsm/remote/.env
+
+[Install]
+WantedBy=multi-user.target
